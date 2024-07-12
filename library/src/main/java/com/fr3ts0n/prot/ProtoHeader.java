@@ -93,7 +93,7 @@ public abstract class ProtoHeader
 	/** string padding character */
 	protected static char paddingChr = ' ';
 	/** check if telegram listeners have to be notified on empty payload */
-	private final boolean isNotificationOnEmptyPayloadAllowed = false;
+	private final boolean notifOnEmpPayLoadAllowed = false;
 
 	/**
 	 * list of parameters for specific protocol
@@ -1023,7 +1023,7 @@ public abstract class ProtoHeader
 	private void notifyTelegram(char[] buffer)
 	{
 		// if there is anything to be notified about
-		if (buffer.length > 0 || isNotificationOnEmptyPayloadAllowed)
+		if (buffer.length > 0 || notifOnEmpPayLoadAllowed)
 		{
 			// loop through all listeners ...
 			Iterator it = TelegramListeners.iterator();
