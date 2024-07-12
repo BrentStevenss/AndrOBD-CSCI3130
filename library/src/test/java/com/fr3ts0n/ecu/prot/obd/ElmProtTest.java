@@ -44,10 +44,7 @@ class ElmProtTest
 		prot.handleTelegram("4900A5000000".toCharArray());
 
 		// F0000000 -> PID's 1,3,6,8 set
-		assertEquals(1, prot.getNextSupportedPid());
-		assertEquals(3, prot.getNextSupportedPid());
-		assertEquals(6, prot.getNextSupportedPid());
-		assertEquals(8, prot.getNextSupportedPid());
+		assertNextSupportedPids(1, 3, 6, 8);
 		// PIDs repeat again
 		// assertEquals(1, prot.getNextSupportedPid());
 	}
@@ -196,4 +193,9 @@ class ElmProtTest
 		assertEquals(true, ObdProt.tCodes.containsKey(0x0456));
 		assertEquals(true, ObdProt.tCodes.containsKey(0x0789));
 	}
+    private void assertNextSupportedPids(int... expectedPids) {
+        for (int expectedPid : expectedPids) {
+            assertEquals(expectedPid, prot.getNextSupportedPid());
+        }
+    }
 }
