@@ -23,15 +23,11 @@ class ElmProtTest
 	@Test
 	void handleTelegram_MessageCount()
 	{
-		prot.setService(ObdProt.OBD_SVC_VEH_INFO);
-		// PID message includes optional message counter
-		prot.handleTelegram("490001F0000000>".toCharArray());
-
+		int service = ObdProt.OBD_SVC_VEH_INFO;
+		String telegrams ="490001F0000000>";
+		handleServiceAndTelegrams(service, telegrams);
 		// F0000000 -> PID's 1,2,3,4 set
-		assertEquals(1, prot.getNextSupportedPid());
-		assertEquals(2, prot.getNextSupportedPid());
-		assertEquals(3, prot.getNextSupportedPid());
-		assertEquals(4, prot.getNextSupportedPid());
+		assertNextSupportedPids(1,2,3,4);
 		// PIDs repeat again
 		// assertEquals(1, prot.getNextSupportedPid());
 	}
@@ -39,10 +35,9 @@ class ElmProtTest
 	@Test
 	void handleTelegram_NoMessageCount()
 	{
-		prot.setService(ObdProt.OBD_SVC_VEH_INFO);
-		// PID message without optional message counter
-		prot.handleTelegram("4900A5000000".toCharArray());
-
+		int service = ObdProt.OBD_SVC_VEH_INFO;
+		String telegram = "4900A5000000";
+		handleServiceAndTelegram(service,  telegram);
 		// F0000000 -> PID's 1,3,6,8 set
 		assertNextSupportedPids(1, 3, 6, 8);
 		// PIDs repeat again
@@ -198,4 +193,14 @@ class ElmProtTest
             assertEquals(expectedPid, prot.getNextSupportedPid());
         }
     }
+	private void handleServiceAndTelegram(int service, String telegram) {
+		prot.setService(service);
+		prot.handleTelegram(telegram.toCharArray());
+	}
+	private void handleServiceAndTelegrams(int service, String... telegrams){
+		prot.setService(service);
+		for (String telegram : telegrams) {
+			prot.handleTelegram(telegram.toCharArray());
+		}
+	}
 }
