@@ -25,7 +25,8 @@ class ElmProtTest
 	{
 		int service = ObdProt.OBD_SVC_VEH_INFO;
 		String telegrams ="490001F0000000>";
-		handleServiceAndTelegrams(service, telegrams);
+		prot.setService(service);
+		prot.handleTelegram(telegrams.toCharArray());
 		// F0000000 -> PID's 1,2,3,4 set
 		assertNextSupportedPids(1,2,3,4);
 		// PIDs repeat again
@@ -37,7 +38,8 @@ class ElmProtTest
 	{
 		int service = ObdProt.OBD_SVC_VEH_INFO;
 		String telegram = "4900A5000000";
-		handleServiceAndTelegram(service,  telegram);
+		prot.setService(service);
+		prot.handleTelegram(telegram.toCharArray());
 		// F0000000 -> PID's 1,3,6,8 set
 		assertNextSupportedPids(1, 3, 6, 8);
 		// PIDs repeat again
@@ -193,14 +195,5 @@ class ElmProtTest
             assertEquals(expectedPid, prot.getNextSupportedPid());
         }
     }
-	private void handleServiceAndTelegram(int service, String telegram) {
-		prot.setService(service);
-		prot.handleTelegram(telegram.toCharArray());
-	}
-	private void handleServiceAndTelegrams(int service, String... telegrams){
-		prot.setService(service);
-		for (String telegram : telegrams) {
-			prot.handleTelegram(telegram.toCharArray());
-		}
-	}
+
 }
