@@ -18,6 +18,8 @@
 
 package com.fr3ts0n.ecu.gui.androbd;
 
+import static androidx.core.app.ActivityCompat.startActivityForResult;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
@@ -42,6 +44,7 @@ import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.util.SparseBooleanArray;
 import android.view.ActionMode;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -69,6 +72,7 @@ import com.fr3ts0n.pvs.PvChangeEvent;
 import com.fr3ts0n.pvs.PvChangeListener;
 import com.fr3ts0n.pvs.PvList;
 
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -76,7 +80,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
@@ -1648,81 +1654,125 @@ public class MainActivity extends PluginManager
     private void setMode(MODE mode)
     {
         // if this is a mode change, or file reload ...
-        if (mode != this.mode || mode == MODE.FILE)
-        {
-            if (mode != MODE.DEMO)
-            {
+        if (mode != this.mode || mode == MODE.FILE) {
+            if (mode != MODE.DEMO) {
                 stopDemoService();
             }
 
             // Disable data updates in FILE mode
             ObdItemAdapter.allowDataUpdates = (mode != MODE.FILE);
 
-            switch (mode)
-            {
-                case OFFLINE:
-                    // update menu item states
-                    setMenuItemVisible(R.id.disconnect, false);
-                    setMenuItemVisible(R.id.secure_connect_scan, true);
-                    setMenuItemEnable(R.id.obd_services, false);
-                    break;
-
-                case ONLINE:
-                    switch (CommService.medium)
-                    {
-                        case BLUETOOTH:
-                            if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled())
-                            {
-                                Toast.makeText(this, getString(R.string.none_found), Toast.LENGTH_SHORT).show();
-                                mode = MODE.OFFLINE;
-                            } else
-                            {
-                                // if pre-settings shall be used ...
-                                String address = prefs.getString(PRESELECT.LAST_DEV_ADDRESS.toString(), null);
-                                if (istRestoreWanted(PRESELECT.LAST_DEV_ADDRESS)
-                                        && address != null)
-                                {
-                                    // ... connect with previously connected device
-                                    connectBtDevice(address, prefs.getBoolean("bt_secure_connection", false));
-                                } else
-                                {
-                                    // ... otherwise launch the BtDeviceListActivity to see devices and do scan
-                                    Intent serverIntent = new Intent(this, BtDeviceListActivity.class);
-                                    startActivityForResult(serverIntent,
-                                            prefs.getBoolean("bt_secure_connection", false)
-                                                    ? REQUEST_CONNECT_DEVICE_SECURE
-                                                    : REQUEST_CONNECT_DEVICE_INSECURE);
-                                }
-                            }
-                            break;
-
-                        case USB:
-                            Intent enableIntent = new Intent(this, UsbDeviceListActivity.class);
-                            startActivityForResult(enableIntent, REQUEST_CONNECT_DEVICE_USB);
-                            break;
-
-                        case NETWORK:
-                            connectNetworkDevice(prefs.getString(DEVICE_ADDRESS, null),
-                                    getPrefsInt(DEVICE_PORT, 23));
-                            break;
-                    }
-                    break;
-
-                case DEMO:
-                    startDemoService();
-                    break;
-
-                case FILE:
-                    setStatus(R.string.saved_data);
-                    selectFileToLoad();
-                    break;
-
+           Runnable modeHandler = this.getModesHandler().get(mode);
+            if (modeHandler != null) {
+                modeHandler.run();
+                this.mode = mode;
+                setStatus(mode.toString());
             }
-            // remember previous mode
-            // set new mode
-            this.mode = mode;
-            setStatus(mode.toString());
         }
+    }
+
+    /**
+     * Creates Map of mediumHandlers
+     * @return CommunicationMediumHandlers
+     */
+    private Map<CommService.MEDIUM, Runnable> getCommMediumHandler(){
+        Map<CommService.MEDIUM, Runnable> mediumHandlers = new HashMap<>();
+        mediumHandlers.put(CommService.MEDIUM.BLUETOOTH, this::bluetoothMediumHandler);
+        mediumHandlers.put(CommService.MEDIUM.USB, this::USBMediumHandler);
+        mediumHandlers.put(CommService.MEDIUM.NETWORK, this::networkMediumHandler);
+        return mediumHandlers;
+    }
+
+    /**
+     * Creates Map of ModeHandlers
+     * @return Mode Handlers
+     */
+    private Map<MODE,Runnable> getModesHandler(){
+        Map<MODE, Runnable> modeHandlers = new HashMap<>();
+        modeHandlers.put(MODE.OFFLINE, this::offlineModeHandler);
+        modeHandlers.put(MODE.ONLINE, this::onlineModeHandler);
+        modeHandlers.put(MODE.DEMO, this::demoModeHandler);
+        modeHandlers.put(MODE.FILE,  this::fileModeHandler);
+        return modeHandlers;
+    }
+
+    /**
+     * Handles online mode switch
+     */
+    private void onlineModeHandler(){
+        Runnable handler = getCommMediumHandler().get(CommService.medium);
+        if(handler != null){
+            handler.run();
+        }
+    }
+
+    /**
+     * Handles Offline mode switch
+     */
+    private void offlineModeHandler(){
+        this.setMenuItemVisible(R.id.disconnect, false);
+        this.setMenuItemVisible(R.id.secure_connect_scan, true);
+        this.setMenuItemEnable(R.id.obd_services, false);
+    }
+
+    /**
+     * Handles demo mode switch
+     */
+    private void demoModeHandler(){
+        this.startDemoService();
+    }
+
+    /**
+     * Handles file mode switch
+     */
+    private void fileModeHandler(){
+        setStatus(R.string.saved_data);
+        selectFileToLoad();
+    }
+
+    /**
+     * Handles bluetooth medium switch
+     */
+    private void bluetoothMediumHandler(){
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled())
+        {
+            Toast.makeText(this, getString(R.string.none_found), Toast.LENGTH_SHORT).show();
+            mode = MODE.OFFLINE;
+        } else
+        {
+            // if pre-settings shall be used ...
+            String address = prefs.getString(PRESELECT.LAST_DEV_ADDRESS.toString(), null);
+            if (istRestoreWanted(PRESELECT.LAST_DEV_ADDRESS)
+                    && address != null)
+            {
+                // ... connect with previously connected device
+                connectBtDevice(address, prefs.getBoolean("bt_secure_connection", false));
+            } else
+            {
+                // ... otherwise launch the BtDeviceListActivity to see devices and do scan
+                Intent serverIntent = new Intent(this, BtDeviceListActivity.class);
+                startActivityForResult(serverIntent,
+                        prefs.getBoolean("bt_secure_connection", false)
+                                ? REQUEST_CONNECT_DEVICE_SECURE
+                                : REQUEST_CONNECT_DEVICE_INSECURE);
+            }
+        }
+    }
+
+    /**
+     * Handles usb medium switch
+     */
+    private void USBMediumHandler(){
+        Intent enableIntent = new Intent(this, UsbDeviceListActivity.class);
+        startActivityForResult(enableIntent, REQUEST_CONNECT_DEVICE_USB);
+    }
+
+    /**
+     * Handles network medium switch
+     */
+    private void networkMediumHandler(){
+        connectNetworkDevice(prefs.getString(DEVICE_ADDRESS, null),
+                getPrefsInt(DEVICE_PORT, 23));
     }
 
     /**
