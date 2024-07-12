@@ -78,8 +78,7 @@ public class PluginManager
      */
     public void sendIdentify(View view)
     {
-        pluginHandler.clear();
-        pluginHandler.identifyPlugins();
+        pluginHandler.clearAndIdentify();
     }
 
     /**
