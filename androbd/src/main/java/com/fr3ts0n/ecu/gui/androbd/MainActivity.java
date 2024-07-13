@@ -61,6 +61,7 @@ import androidx.core.content.FileProvider;
 
 import com.fr3ts0n.androbd.plugin.Plugin;
 import com.fr3ts0n.androbd.plugin.mgr.PluginManager;
+import com.fr3ts0n.ecu.AdaptTimingMode;
 import com.fr3ts0n.ecu.EcuCodeItem;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.EcuDataItems;
@@ -1057,10 +1058,10 @@ public class MainActivity extends PluginManager
         // enable/disable ELM adaptive timing
         if (key == null || ELM_ADAPTIVE_TIMING.equals(key))
         {
-            CommService.elm.setMode(
-                    ElmProt.AdaptTimingMode.valueOf(
+            CommService.elm.mAdaptiveTiming.setMode(
+                    AdaptTimingMode.valueOf(
                             prefs.getString(ELM_ADAPTIVE_TIMING,
-                                    ElmProt.AdaptTimingMode.OFF.toString())));
+                                    AdaptTimingMode.OFF.toString())));
         }
 
         // set protocol flag to initiate immediate reset on NRC reception

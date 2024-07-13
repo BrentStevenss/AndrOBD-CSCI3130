@@ -1,5 +1,7 @@
 package com.fr3ts0n.ecu.prot.obd;
 
+import com.fr3ts0n.ecu.AdaptTimingMode;
+
 import java.util.logging.Logger;
 
 /**
@@ -8,10 +10,11 @@ import java.util.logging.Logger;
  */
 public class AdaptiveTiming
 {
-
     public AdaptiveTiming(){
 
     }
+    private CommandSender mCommandSender =  new CommandSender();
+
     /** Logging object */
     protected static Logger log = Logger.getLogger("com.fr3ts0n.prot");
     /**
@@ -45,20 +48,11 @@ public class AdaptiveTiming
     /**
      * adaptive timing handling enabled?
      */
-    private ElmProt.AdaptTimingMode mode = ElmProt.AdaptTimingMode.OFF;
+    private AdaptTimingMode mode = AdaptTimingMode.OFF;
 
-    public ElmProt.AdaptTimingMode getMode()
+    public AdaptTimingMode getMode()
     {
         return mode;
-    }
-
-    public void setMode(ElmProt.AdaptTimingMode mode)
-    {
-
-        log.info(String.format("AdaptiveTiming mode: %s -> %s",
-                this.mode.toString(),
-                mode.toString()));
-        this.mode = mode;
     }
 
     /**
@@ -83,7 +77,32 @@ public class AdaptiveTiming
         ELM_TIMEOUT_MIN = elmTimeoutMin;
     }
 
-
+    /**
+     * Initialize timing hadler
+     */
+    public void initialize()
+    {
+        if (mode == AdaptTimingMode.SOFTWARE)
+        {
+            // ... reset learned minimum timeout ...
+            setElmTimeoutLrnLow(getElmTimeoutMin());
+            // set default timeout
+            setElmMsgTimeout(ELM_TIMEOUT_DEFAULT);
+            // switch OFF ELM internal adaptive timing
+            mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, 0);
+        }
+        else
+        {
+            mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, mode.ordinal());
+        }
+    }
+    public void setMode(AdaptTimingMode mode){
+        log.info(String.format("AdaptiveTiming mode: %s -> %s",
+                this.mode.toString(),
+                mode.toString()));
+        this.mode = mode;
+        initialize();
+    }
     /**
      * Adapt ELM message timeout
      *
@@ -91,7 +110,7 @@ public class AdaptiveTiming
      */
     void adapt(boolean increaseTimeout)
     {
-        if (mode != ElmProt.AdaptTimingMode.SOFTWARE) { return; }
+        if (mode != AdaptTimingMode.SOFTWARE) { return; }
         if (increaseTimeout)
         {
             // increase OBD timeout since we may expect answers too fast
@@ -151,7 +170,7 @@ public class AdaptiveTiming
             // set the timeout variable
             elmMsgTimeout = newTimeout;
             // queue the new timeout message
-
+            mCommandSender.sendCommand(ElmProt.CMD.SETTIMEOUT, newTimeout / 4);
         }
     }
 }

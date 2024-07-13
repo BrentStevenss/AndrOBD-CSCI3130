@@ -33,6 +33,7 @@ import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.widget.Toast;
 
+import com.fr3ts0n.ecu.AdaptTimingMode;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.prot.obd.ElmProt;
 import com.fr3ts0n.ecu.prot.obd.ObdProt;
@@ -179,11 +180,11 @@ public class SettingsActivity
         void setupElmTimingSelection()
         {
             ListPreference pref = (ListPreference) findPreference(ELM_TIMING_SELECT);
-            ElmProt.AdaptTimingMode[] values = ElmProt.AdaptTimingMode.values();
+            AdaptTimingMode[] values = AdaptTimingMode.values();
             CharSequence[] titles = new CharSequence[values.length];
             CharSequence[] keys = new CharSequence[values.length];
             int i = 0;
-            for (ElmProt.AdaptTimingMode mode : values)
+            for (AdaptTimingMode mode : values)
             {
 				titles[i] = mode.toString();
 				keys[i] = mode.toString();
@@ -418,7 +419,7 @@ public class SettingsActivity
 			if(ELM_TIMING_SELECT.equals(key))
 				//noinspection ConstantConditions
 				findPreference(ELM_MIN_TIMEOUT)
-					.setEnabled(ElmProt.AdaptTimingMode.SOFTWARE.toString()
+					.setEnabled(AdaptTimingMode.SOFTWARE.toString()
 						          .equals(((ListPreference)pref).getValue())
 					           );
 		}

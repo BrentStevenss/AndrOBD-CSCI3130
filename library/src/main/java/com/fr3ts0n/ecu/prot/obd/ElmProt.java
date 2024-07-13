@@ -264,17 +264,7 @@ public class ElmProt
 			return disablingAllowed;
 		}
 	}
-	
-	/**
-	 * Adaptive timing mode
-	 */
-	public enum AdaptTimingMode
-	{
-		OFF,
-		ELM_AT1,
-		ELM_AT2,
-		SOFTWARE
-	}
+
 	/**
 	 * Creates a new instance of ElmProtocol
 	 */
@@ -309,62 +299,7 @@ public class ElmProt
 			selectedEcuAddress);
 	}
 
-	/**
-	 * Adapt ELM message timeout
-	 *
-	 * @param increaseTimeout increase/decrease timeout
-	 */
-	void adapt(boolean increaseTimeout)
-	{
-		if (mAdaptiveTiming.getMode() != ElmProt.AdaptTimingMode.SOFTWARE) { return; }
-		int currTimeout = mAdaptiveTiming.elmMsgTimeout;
-		int maxTimeout = mAdaptiveTiming.ELM_TIMEOUT_MAX;
-		if (increaseTimeout)
-		{
 
-			// increase OBD timeout since we may expect answers too fast
-			if ((currTimeout + mAdaptiveTiming.ELM_TIMEOUT_RES) < maxTimeout)
-			{
-				// increase timeout, since we have just timed out
-				setElmMsgTimeout(currTimeout + mAdaptiveTiming.ELM_TIMEOUT_RES);
-				// ... and limit MIN timeout for this session
-				mAdaptiveTiming.setElmTimeoutLrnLow(currTimeout);
-			}
-		}
-		else
-		{
-			// reduce OBD timeout towards minimum limit
-			if ((currTimeout - mAdaptiveTiming.ELM_TIMEOUT_RES) >= mAdaptiveTiming.getElmTimeoutLrnLow())
-			{
-				setElmMsgTimeout(currTimeout - mAdaptiveTiming.ELM_TIMEOUT_RES);
-			}
-
-		}
-	}
-	/**
-	 * Initialize timing hadler
-	 */
-	void initializeTiming()
-	{
-		if (mAdaptiveTiming.getMode() == ElmProt.AdaptTimingMode.SOFTWARE)
-		{
-			// ... reset learned minimum timeout ...
-			mAdaptiveTiming.setElmTimeoutLrnLow(mAdaptiveTiming.getElmTimeoutMin());
-			// set default timeout
-			mAdaptiveTiming.setElmMsgTimeout(ELM_TIMEOUT_DEFAULT);
-			mCommandSender.pushCommand(ElmProt.CMD.SETTIMEOUT, ELM_TIMEOUT_DEFAULT / 4);
-			// switch OFF ELM internal adaptive timing
-			mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, 0);
-		}
-		else
-		{
-			mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, mAdaptiveTiming.getMode().ordinal());
-		}
-	}
-	public void setMode(AdaptTimingMode mode){
-		mAdaptiveTiming.setMode(mode);
-		initializeTiming();
-	}
 	/**
 	 * disable a set of ELM commands ELM commands from preference
 	 *
@@ -384,7 +319,7 @@ public class ElmProt
 	public void setElmMsgTimeout(int newTimeout){
 		mAdaptiveTiming.setElmTimeoutMin(newTimeout);
 		// queue the new timeout message
-		mCommandSender.sendCommand(ElmProt.CMD.SETTIMEOUT, newTimeout / 4);
+
 	}
 
 	
@@ -463,7 +398,7 @@ public class ElmProt
 		mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 		
 		// initialize adaptive timing handler
-		initializeTiming();
+		mAdaptiveTiming.initialize();
 		
 		// speed up protocol by removing spaces and line feeds from output
 		mCommandSender.pushCommand(CMD.SETSPACES, 0);
@@ -570,7 +505,7 @@ public class ElmProt
 						// queue setting to preferred protocol
 						mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 						// Initialize adaptive timing
-						initializeTiming();
+						mAdaptiveTiming.initialize();
 						// immediately close current protocol
 						mCommandSender.sendCommand(CMD.PROTOCLOSE, 0);
 						break;
