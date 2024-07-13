@@ -18,6 +18,8 @@
 
 package com.fr3ts0n.ecu.prot.obd;
 
+import static com.fr3ts0n.ecu.prot.obd.AdaptiveTiming.ELM_TIMEOUT_DEFAULT;
+
 import com.fr3ts0n.prot.TelegramListener;
 import com.fr3ts0n.prot.TelegramWriter;
 
@@ -61,15 +63,17 @@ public class ElmProt
 	 * Adaptive timing handler
 	 */
 	public final AdaptiveTiming mAdaptiveTiming = new AdaptiveTiming();
+
+	/**
+	 * Command sender
+	 */
+	public final CommandSender mCommandSender = new CommandSender();
 	
 	/**
 	 * number of bytes expected from opponent
 	 */
 	private int charsExpected = 0;
-	/**
-	 * remember last command which was sent
-	 */
-	private char[] lastCommand;
+
 	
 	/**
 	 * preferred ELM protocol to be selected
@@ -271,176 +275,6 @@ public class ElmProt
 		ELM_AT2,
 		SOFTWARE
 	}
-	
-	/**
-	 * Adaptive ELM timing handler
-	 * * optimizes ELM message timeout at runtime
-	 */
-	public class AdaptiveTiming
-	{
-		/**
-		 * for ELM message timeout handling
-		 */
-		/**
-		 * max. ELM Message Timeout [ms]
-		 */
-		private static final int ELM_TIMEOUT_MAX = 1000;
-		/**
-		 * default ELM message timeout
-		 */
-		private static final int ELM_TIMEOUT_DEFAULT = 200;
-		/**
-		 * Learning resolution of ELM Message Timeout [ms]
-		 */
-		private static final int ELM_TIMEOUT_RES = 4;
-		/**
-		 * minimum ELM timeout
-		 */
-		int ELM_TIMEOUT_MIN = 12;
-		/**
-		 * minimum ELM timeout (learned from vehicle)
-		 */
-		int ELM_TIMEOUT_LRN_LOW = 12;
-		/**
-		 * ELM message timeout: defaults to approx 200 [ms]
-		 */
-		int elmMsgTimeout = ELM_TIMEOUT_MAX;
-		
-		/**
-		 * adaptive timing handling enabled?
-		 */
-		private AdaptTimingMode mode = AdaptTimingMode.OFF;
-		
-		public AdaptTimingMode getMode()
-		{
-			return mode;
-		}
-		
-		public void setMode(AdaptTimingMode mode)
-		{
-			
-			log.info(String.format("AdaptiveTiming mode: %s -> %s",
-				this.mode.toString(),
-				mode.toString()));
-			this.mode = mode;
-			// initialize with new mode
-			initialize();
-		}
-		
-		/**
-		 * min. (configured) ELM Message Timeout
-		 *
-		 * @return minimum (configured) ELM timeout value [ms]
-		 */
-		public int getElmTimeoutMin()
-		{
-			return ELM_TIMEOUT_MIN;
-		}
-		
-		/**
-		 * Set min. (configured) ELM Message Timeout
-		 *
-		 * @param elmTimeoutMin minimum (configured) ELM timeout value [ms]
-		 */
-		public void setElmTimeoutMin(int elmTimeoutMin)
-		{
-			log.info(String.format("ELM min timeout: %d -> %d",
-				ELM_TIMEOUT_MIN, elmTimeoutMin));
-			ELM_TIMEOUT_MIN = elmTimeoutMin;
-		}
-		
-		/**
-		 * Initialize timing hadler
-		 */
-		void initialize()
-		{
-			if (mode == AdaptTimingMode.SOFTWARE)
-			{
-				// ... reset learned minimum timeout ...
-				setElmTimeoutLrnLow(getElmTimeoutMin());
-				// set default timeout
-				setElmMsgTimeout(ELM_TIMEOUT_DEFAULT);
-				// switch OFF ELM internal adaptive timing
-				pushCommand(CMD.ADAPTTIMING, 0);
-			}
-			else
-			{
-				pushCommand(CMD.ADAPTTIMING, mode.ordinal());
-			}
-		}
-		
-		/**
-		 * Adapt ELM message timeout
-		 *
-		 * @param increaseTimeout increase/decrease timeout
-		 */
-		void adapt(boolean increaseTimeout)
-		{
-			if (mode != AdaptTimingMode.SOFTWARE) { return; }
-			if (increaseTimeout)
-			{
-				// increase OBD timeout since we may expect answers too fast
-				if ((elmMsgTimeout + ELM_TIMEOUT_RES) < ELM_TIMEOUT_MAX)
-				{
-					// increase timeout, since we have just timed out
-					setElmMsgTimeout(elmMsgTimeout + ELM_TIMEOUT_RES);
-					// ... and limit MIN timeout for this session
-					setElmTimeoutLrnLow(elmMsgTimeout);
-				}
-			}
-			else
-			{
-				// reduce OBD timeout towards minimum limit
-				if ((elmMsgTimeout - ELM_TIMEOUT_RES) >= getElmTimeoutLrnLow())
-				{
-					setElmMsgTimeout(elmMsgTimeout - ELM_TIMEOUT_RES);
-				}
-				
-			}
-		}
-		
-		/**
-		 * LOW Learn value ELM Message Timeout
-		 *
-		 * @return currently learned timout value [ms]
-		 */
-		private int getElmTimeoutLrnLow()
-		{
-			return ELM_TIMEOUT_LRN_LOW;
-		}
-		
-		/**
-		 * set LOW Learn value ELM Message Timeout
-		 *
-		 * @param elmTimeoutLrnLow new learn value [ms]
-		 */
-		private void setElmTimeoutLrnLow(int elmTimeoutLrnLow)
-		{
-			log.info(String.format("ELM learn timeout: %d -> %d",
-				ELM_TIMEOUT_LRN_LOW, elmTimeoutLrnLow));
-			ELM_TIMEOUT_LRN_LOW = elmTimeoutLrnLow;
-		}
-		
-		/**
-		 * Set message timeout to ELM adapter to wait for valid response from vehicle
-		 * If this timeout expires before a valid response is received from the
-		 * vehicle, the ELM adapter will respond with "NO DATA"
-		 *
-		 * @param newTimeout desired timeout in milliseconds
-		 */
-		private void setElmMsgTimeout(int newTimeout)
-		{
-			if (newTimeout > 0 && newTimeout != elmMsgTimeout)
-			{
-				log.info("ELM Timeout: " + elmMsgTimeout + " -> " + newTimeout);
-				// set the timeout variable
-				elmMsgTimeout = newTimeout;
-				// queue the new timeout message
-				pushCommand(CMD.SETTIMEOUT, newTimeout / 4);
-			}
-		}
-	}
-	
 	/**
 	 * Creates a new instance of ElmProtocol
 	 */
@@ -469,12 +303,68 @@ public class ElmProt
 		log.info(String.format("Set ECU address: 0x%x", ecuAddress));
 		selectedEcuAddress = ecuAddress;
 		// ensure headers are off
-		pushCommand(CMD.SETHEADER, 0);
+		mCommandSender.pushCommand(CMD.SETHEADER, 0);
 		// set/clear RX filter
-		pushCommand((selectedEcuAddress != 0) ? CMD.SETCANRXFLT : CMD.CLRCANRXFLT,
+		mCommandSender.sendCommand((selectedEcuAddress != 0) ? CMD.SETCANRXFLT : CMD.CLRCANRXFLT,
 			selectedEcuAddress);
 	}
-	
+
+	/**
+	 * Adapt ELM message timeout
+	 *
+	 * @param increaseTimeout increase/decrease timeout
+	 */
+	void adapt(boolean increaseTimeout)
+	{
+		if (mAdaptiveTiming.getMode() != ElmProt.AdaptTimingMode.SOFTWARE) { return; }
+		int currTimeout = mAdaptiveTiming.elmMsgTimeout;
+		int maxTimeout = mAdaptiveTiming.ELM_TIMEOUT_MAX;
+		if (increaseTimeout)
+		{
+
+			// increase OBD timeout since we may expect answers too fast
+			if ((currTimeout + mAdaptiveTiming.ELM_TIMEOUT_RES) < maxTimeout)
+			{
+				// increase timeout, since we have just timed out
+				setElmMsgTimeout(currTimeout + mAdaptiveTiming.ELM_TIMEOUT_RES);
+				// ... and limit MIN timeout for this session
+				mAdaptiveTiming.setElmTimeoutLrnLow(currTimeout);
+			}
+		}
+		else
+		{
+			// reduce OBD timeout towards minimum limit
+			if ((currTimeout - mAdaptiveTiming.ELM_TIMEOUT_RES) >= mAdaptiveTiming.getElmTimeoutLrnLow())
+			{
+				setElmMsgTimeout(currTimeout - mAdaptiveTiming.ELM_TIMEOUT_RES);
+			}
+
+		}
+	}
+	/**
+	 * Initialize timing hadler
+	 */
+	void initializeTiming()
+	{
+		if (mAdaptiveTiming.getMode() == ElmProt.AdaptTimingMode.SOFTWARE)
+		{
+			// ... reset learned minimum timeout ...
+			mAdaptiveTiming.setElmTimeoutLrnLow(mAdaptiveTiming.getElmTimeoutMin());
+			// set default timeout
+			mAdaptiveTiming.setElmMsgTimeout(ELM_TIMEOUT_DEFAULT);
+			mCommandSender.pushCommand(ElmProt.CMD.SETTIMEOUT, ELM_TIMEOUT_DEFAULT / 4);
+			// switch OFF ELM internal adaptive timing
+			mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, 0);
+		}
+		else
+		{
+			mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, mAdaptiveTiming.getMode().ordinal());
+		}
+	}
+	public void setMode(AdaptTimingMode mode){
+		mAdaptiveTiming.setMode(mode);
+		initializeTiming();
+	}
 	/**
 	 * disable a set of ELM commands ELM commands from preference
 	 *
@@ -489,62 +379,14 @@ public class ElmProt
 		}
 	}
 	
-	/**
-	 * create ELM command string from command id and paramter
-	 *
-	 * @param cmdID ID of ELM command
-	 * @param param parameter for ELM command (0 if not required)
-	 * @return command char sequence or NULL if command disabled/invalid
-	 */
-	private String createCommand(CMD cmdID, int param)
-	{
-		String cmd = null;
-		if (cmdID.isEnabled())
-		{
-			cmd = cmdID.toString();
-			// if parameter is required and provided, add parameter to command
-			if (cmdID.paramDigits > 0)
-			{
-				String fmtString = "%0".concat(String.valueOf(cmdID.paramDigits)).concat("X");
-				cmd += String.format(fmtString, param);
-			}
-		}
-		// return command String
-		return cmd;
+
+
+	public void setElmMsgTimeout(int newTimeout){
+		mAdaptiveTiming.setElmTimeoutMin(newTimeout);
+		// queue the new timeout message
+		mCommandSender.sendCommand(ElmProt.CMD.SETTIMEOUT, newTimeout / 4);
 	}
-	
-	/**
-	 * send command to ELM adapter
-	 *
-	 * @param cmdID ID of ELM command
-	 * @param param parameter for ELM command (0 if not required)
-	 */
-	public void sendCommand(CMD cmdID, int param)
-	{
-		// now send command
-		String cmd = createCommand(cmdID, param);
-		if (cmd != null) { sendTelegram(cmd.toCharArray()); }
-	}
-	
-	/**
-	 * queue command to ELM command queue
-	 *
-	 * @param cmdID ID of ELM command
-	 * @param param parameter for ELM command (0 if not required)
-	 */
-	private void pushCommand(CMD cmdID, int param)
-	{
-		String cmd = createCommand(cmdID, param);
-		if (cmd != null) { cmdQueue.add(cmd); }
-	}
-	
-	@Override
-	public void sendTelegram(char[] buffer)
-	{
-		log.fine(this.toString() + " TX:'" + String.valueOf(buffer) + "'");
-		lastCommand = buffer;
-		super.sendTelegram(buffer);
-	}
+
 	
 	/**
 	 * return numeric ID to given response
@@ -571,7 +413,7 @@ public class ElmProt
 	 */
 	public void goToSleep()
 	{
-		sendCommand(CMD.LOWPOWER, 0);
+		mCommandSender.sendCommand(CMD.LOWPOWER, 0);
 	}
 	
 	/**
@@ -583,9 +425,9 @@ public class ElmProt
 		super.reset();
 		// either RESET or INFO command needs to be enabled
 		if (CMD.RESET.isEnabled())
-		{ sendCommand(CMD.RESET, 0); }
+		{ mCommandSender.sendCommand(CMD.RESET, 0); }
 		else
-		{ sendCommand(CMD.INFO, 0); }
+		{ mCommandSender.sendCommand(CMD.INFO, 0); }
 	}
 	
 	/**
@@ -602,11 +444,11 @@ public class ElmProt
 		// clear selected ECU
 		selectedEcuAddress = 0;
 		// remember to disable headers again
-		pushCommand(CMD.SETHEADER, 0);
+		mCommandSender.pushCommand(CMD.SETHEADER, 0);
 		// request PIDs (from all devices)
-		cmdQueue.add("0100");
+		mCommandSender.addQueue("0100");
 		// enable headers
-		sendCommand(CMD.SETHEADER, 1);
+		mCommandSender.sendCommand(CMD.SETHEADER, 1);
 	}
 	
 	private void initialize()
@@ -615,20 +457,20 @@ public class ElmProt
 		setStatus(STAT.INITIALIZING);
 		
 		// push custom init commands
-		cmdQueue.addAll(customInitCommands);
+		mCommandSender.addAll(customInitCommands);
 		
 		// set to preferred protocol
-		pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
+		mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 		
 		// initialize adaptive timing handler
-		mAdaptiveTiming.initialize();
+		initializeTiming();
 		
 		// speed up protocol by removing spaces and line feeds from output
-		pushCommand(CMD.SETSPACES, 0);
-		pushCommand(CMD.SETLINEFEED, 0);
+		mCommandSender.pushCommand(CMD.SETSPACES, 0);
+		mCommandSender.pushCommand(CMD.SETLINEFEED, 0);
 		
 		// immediate set echo off
-		pushCommand(CMD.ECHO, 0);
+		mCommandSender.pushCommand(CMD.ECHO, 0);
 	}
 	
 	/**
@@ -701,7 +543,7 @@ public class ElmProt
 				// remember this as last received message
 				lastRxMsg = bufferStr;
 				// re-queue last command
-				cmdQueue.add(String.valueOf(lastCommand));
+				mCommandSender.addQueue(String.valueOf(mCommandSender.getLastCommand()));
 				break;
 
 			case MODEL:
@@ -724,29 +566,29 @@ public class ElmProt
 					case FBERROR:
 						setStatus(STAT.DISCONNECTED);
 						// re-queue last command
-						cmdQueue.add(String.valueOf(lastCommand));
+						mCommandSender.addQueue(String.valueOf(mCommandSender.getLastCommand()));
 						// queue setting to preferred protocol
-						pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
+						mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 						// Initialize adaptive timing
-						mAdaptiveTiming.initialize();
+						initializeTiming();
 						// immediately close current protocol
-						sendCommand(CMD.PROTOCLOSE, 0);
+						mCommandSender.sendCommand(CMD.PROTOCLOSE, 0);
 						break;
 					
 					case DATAERROR:
 						setStatus(STAT.DATAERROR);
-						sendCommand(CMD.WARMSTART, 0);
+						mCommandSender.sendCommand(CMD.WARMSTART, 0);
 						break;
 					
 					case BUFFERFULL:
 					case RXERROR:
 						setStatus(STAT.RXERROR);
-						sendCommand(CMD.WARMSTART, 0);
+						mCommandSender.sendCommand(CMD.WARMSTART, 0);
 						break;
 					
 					case ERROR:
 						setStatus(STAT.ERROR);
-						sendCommand(CMD.WARMSTART, 0);
+						mCommandSender.sendCommand(CMD.WARMSTART, 0);
 						break;
 
 					case NODATA:
@@ -754,7 +596,7 @@ public class ElmProt
 						// re-queue next data item
 						if (service != OBD_SVC_NONE)
 						{
-							cmdQueue.add(
+							mCommandSender.addQueue(
 								String.valueOf(
 									createTelegram(emptyBuffer, service, getNextSupportedPid()))
 							);
@@ -762,7 +604,7 @@ public class ElmProt
 						// increase OBD timeout since we may expect answers too fast
 						mAdaptiveTiming.adapt(true);
 						// set to preferred protocol
-						pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
+						mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 						// NO break here since reaction is only quqeued
 					
 					case MODEL:
@@ -781,12 +623,12 @@ public class ElmProt
 						}
 						
 						// queued commands will be sent first
-						if (cmdQueue.size() > 0)
+						if (mCommandSender.queueSize() > 0)
 						{
 							// get last command
-							String cmd = cmdQueue.lastElement();
+							String cmd = mCommandSender.getLastCommand();
 							// and remove it from list
-							cmdQueue.remove(cmd);
+							mCommandSender.removeCommand(cmd);
 							// send the command
 							sendTelegram(cmd.toCharArray());
 						}
@@ -1203,7 +1045,7 @@ public class ElmProt
 			switch (service)
 			{
 				case OBD_SVC_CAN_MONITOR:
-					sendCommand(CMD.CANMONITOR, 0);
+					mCommandSender.sendCommand(CMD.CANMONITOR, 0);
 					break;
 				
 				default:

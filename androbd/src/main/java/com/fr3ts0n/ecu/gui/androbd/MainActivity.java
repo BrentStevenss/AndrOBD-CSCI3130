@@ -1057,7 +1057,7 @@ public class MainActivity extends PluginManager
         // enable/disable ELM adaptive timing
         if (key == null || ELM_ADAPTIVE_TIMING.equals(key))
         {
-            CommService.elm.mAdaptiveTiming.setMode(
+            CommService.elm.setMode(
                     ElmProt.AdaptTimingMode.valueOf(
                             prefs.getString(ELM_ADAPTIVE_TIMING,
                                     ElmProt.AdaptTimingMode.OFF.toString())));
