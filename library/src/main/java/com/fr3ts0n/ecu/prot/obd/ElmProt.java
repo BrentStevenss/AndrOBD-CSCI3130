@@ -296,7 +296,9 @@ public class ElmProt
 	}
 
 
+
 	private void handlePromptResponse(String bufferStr) {
+		int result = 0;
 		RSP_ID lastResponseId = getResponseId(lastRxMsg);
 
 		switch (lastResponseId) {
@@ -336,8 +338,62 @@ public class ElmProt
 				mAdaptiveTiming.adapt(true);
 				mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 			default:
-				lastRxMsg = bufferStr;
-				break;
+				// if there is a pending data response, handle it now ...
+				if (responsePending)
+				{
+					result = handleDataMessage(lastRxMsg);
+				}
+
+				// queued commands will be sent first
+				if (cmdQueue.size() > 0)
+				{
+					// get last command
+					String cmd = cmdQueue.lastElement();
+					// and remove it from list
+					cmdQueue.remove(cmd);
+					// send the command
+					sendTelegram(cmd.toCharArray());
+				}
+				else
+				{
+					// all queued commands are sent -> we are done initializing
+					if (status == STAT.INITIALIZING)
+					{
+						// set status to initialized
+						setStatus(STAT.INITIALIZED);
+						// initiate query of connected ECUs
+						queryEcus();
+						break;
+					}
+
+					// all queued commands are sent -> we are done detecting ECUs
+					setStatus(status == STAT.ECU_DETECT ? STAT.ECU_DETECTED : status);
+
+					switch (service)
+					{
+						case OBD_SVC_VEH_INFO:
+							// if all pid's have been read once ...
+							if (pidsWrapped)
+							{
+								// ... terminate service loop
+								break;
+							}
+							// no break here ...
+						case OBD_SVC_DATA:
+						case OBD_SVC_FREEZEFRAME:
+						{
+							// otherwise the next PID will be requested
+							writeTelegram(emptyBuffer, service, getNextSupportedPid());
+							// reduce OBD timeout towards minimum limit
+							mAdaptiveTiming.adapt(false);
+						}
+						break;
+
+						case OBD_SVC_NONE:
+						default:
+							// do nothing
+					}
+				}
 		}
 	}
 
