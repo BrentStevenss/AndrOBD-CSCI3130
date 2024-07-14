@@ -66,6 +66,7 @@ import com.fr3ts0n.ecu.EcuCodeItem;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.EcuDataItems;
 import com.fr3ts0n.ecu.EcuDataPv;
+import com.fr3ts0n.ecu.STAT;
 import com.fr3ts0n.ecu.prot.obd.ElmProt;
 import com.fr3ts0n.ecu.prot.obd.ObdProt;
 import com.fr3ts0n.pvs.ProcessVar;
@@ -397,7 +398,7 @@ public class MainActivity extends PluginManager
                     // handle state change in OBD protocol
                     case MESSAGE_OBD_STATE_CHANGED:
                         evt = (PropertyChangeEvent) msg.obj;
-                        ElmProt.STAT state = (ElmProt.STAT) evt.getNewValue();
+                        STAT state = (STAT) evt.getNewValue();
                         /* Show ELM status only in ONLINE mode */
                         if (getMode() != MODE.DEMO)
                         {
@@ -407,7 +408,7 @@ public class MainActivity extends PluginManager
                         // if last selection shall be restored ...
                         if (istRestoreWanted(PRESELECT.LAST_SERVICE))
                         {
-                            if (state == ElmProt.STAT.ECU_DETECTED)
+                            if (state == STAT.ECU_DETECTED)
                             {
                                 setObdService(prefs.getInt(PRESELECT.LAST_SERVICE.toString(), 0),
                                         null);

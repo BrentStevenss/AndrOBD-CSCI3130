@@ -34,7 +34,9 @@ import android.preference.PreferenceManager;
 import android.widget.Toast;
 
 import com.fr3ts0n.ecu.AdaptTimingMode;
+import com.fr3ts0n.ecu.CMD;
 import com.fr3ts0n.ecu.EcuDataItem;
+import com.fr3ts0n.ecu.PROT;
 import com.fr3ts0n.ecu.prot.obd.ElmProt;
 import com.fr3ts0n.ecu.prot.obd.ObdProt;
 
@@ -156,11 +158,11 @@ public class SettingsActivity
 		void setupProtoSelection()
 		{
 			ListPreference pref = (ListPreference) findPreference(KEY_PROT_SELECT);
-			ElmProt.PROT[] values = ElmProt.PROT.values();
+			PROT[] values = PROT.values();
 			CharSequence[] titles = new CharSequence[values.length];
 			CharSequence[] keys = new CharSequence[values.length];
 			int i = 0;
-			for (ElmProt.PROT proto : values)
+			for (PROT proto : values)
 			{
 				titles[i] = proto.toString();
 				keys[i] = String.valueOf(proto.ordinal());
@@ -205,12 +207,12 @@ public class SettingsActivity
 		{
 			MultiSelectListPreference pref =
 				(MultiSelectListPreference) findPreference(ELM_CMD_DISABLE);
-			ElmProt.CMD[] values = ElmProt.CMD.values();
+			CMD[] values = CMD.values();
 			HashSet<String> selections = new HashSet<>();
 			CharSequence[] titles = new CharSequence[values.length];
 			CharSequence[] keys = new CharSequence[values.length];
 			int i = 0;
-			for (ElmProt.CMD cmd : values)
+			for (CMD cmd : values)
 			{
 				titles[i] = cmd.toString();
 				keys[i] = cmd.toString();

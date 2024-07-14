@@ -1,6 +1,7 @@
 package com.fr3ts0n.ecu.prot.obd;
 
 import com.fr3ts0n.ecu.AdaptTimingMode;
+import com.fr3ts0n.ecu.CMD;
 
 import java.util.logging.Logger;
 
@@ -89,11 +90,11 @@ public class AdaptiveTiming
             // set default timeout
             setElmMsgTimeout(ELM_TIMEOUT_DEFAULT);
             // switch OFF ELM internal adaptive timing
-            mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, 0);
+            mCommandSender.pushCommand(CMD.ADAPTTIMING, 0);
         }
         else
         {
-            mCommandSender.pushCommand(ElmProt.CMD.ADAPTTIMING, mode.ordinal());
+            mCommandSender.pushCommand(CMD.ADAPTTIMING, mode.ordinal());
         }
     }
     public void setMode(AdaptTimingMode mode){
@@ -170,7 +171,7 @@ public class AdaptiveTiming
             // set the timeout variable
             elmMsgTimeout = newTimeout;
             // queue the new timeout message
-            mCommandSender.sendCommand(ElmProt.CMD.SETTIMEOUT, newTimeout / 4);
+            mCommandSender.sendCommand(CMD.SETTIMEOUT, newTimeout / 4);
         }
     }
 }

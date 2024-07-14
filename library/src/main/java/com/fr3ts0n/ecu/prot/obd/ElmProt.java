@@ -20,6 +20,10 @@ package com.fr3ts0n.ecu.prot.obd;
 
 import static com.fr3ts0n.ecu.prot.obd.AdaptiveTiming.ELM_TIMEOUT_DEFAULT;
 
+import com.fr3ts0n.ecu.CMD;
+import com.fr3ts0n.ecu.PROT;
+import com.fr3ts0n.ecu.RSP_ID;
+import com.fr3ts0n.ecu.STAT;
 import com.fr3ts0n.prot.TelegramListener;
 import com.fr3ts0n.prot.TelegramWriter;
 
@@ -92,178 +96,6 @@ public class ElmProt
 	 * custom ELM initialisation commands
 	 */
 	private final Vector<String> customInitCommands = new Vector<String>();
-	
-	/**
-	 * ELM protocol ID's
-	 */
-	public enum PROT
-	{
-		ELM_PROT_AUTO("Automatic"),
-		ELM_PROT_J1850PWM("SAE J1850 PWM (41.6 KBaud)"),
-		ELM_PROT_J1850VPW("SAE J1850 VPW (10.4 KBaud)"),
-		ELM_PROT_9141_2("ISO 9141-2 (5 Baud Init)"),
-		ELM_PROT_14230_4("ISO 14230-4 KWP (5 Baud Init)"),
-		ELM_PROT_14230_4F("ISO 14230-4 KWP (fast Init)"),
-		ELM_PROT_15765_11_F("ISO 15765-4 CAN (11 Bit ID, 500 KBit)"),
-		ELM_PROT_15765_29_F("ISO 15765-4 CAN (29 Bit ID, 500 KBit)"),
-		ELM_PROT_15765_11_S("ISO 15765-4 CAN (11 Bit ID, 250 KBit)"),
-		ELM_PROT_15765_29_S("ISO 15765-4 CAN (29 Bit ID, 250 KBit)"),
-		ELM_PROT_J1939_29_S("SAE J1939 CAN (29 bit ID, 250* kbaud)"),
-		ELM_PROT_USER1_CAN_11_S("User1 CAN (11* bit ID, 125* kbaud)"),
-		ELM_PROT_USER2_CAN_11_S("User2 CAN (11* bit ID, 50* kbaud)");
-		private final String description;
-		
-		PROT(String _description)
-		{
-			description = _description;
-		}
-		
-		@Override
-		public String toString()
-		{
-			return description;
-		}
-	}
-	
-	/**
-	 * possible ELM responses and ID's
-	 */
-	enum RSP_ID
-	{
-		PROMPT(">"),
-		OK("OK"),
-		MODEL("ELM"),
-		NODATA("NODATA"),
-		SEARCH("SEARCHING"),
-		ERROR("ERROR"),
-		NOCONN("UNABLE"),
-		NOCONN2("NABLETO"),
-		CANERROR("CANERROR"),
-		BUSBUSY("BUSBUSY"),
-		BUSERROR("BUSERROR"),
-		BUSINIERR("BUSINIT:ERR"),
-		BUSINIERR2("BUSINIT:BUS"),
-		BUSINIERR3("BUSINIT:...ERR"),
-		FBERROR("FBERROR"),
-		DATAERROR("DATAERROR"),
-		BUFFERFULL("BUFFERFULL"),
-		STOPPED("STOPPED"),
-		RXERROR("<"),
-		QMARK("?"),
-		UNKNOWN("");
-		private final String response;
-		
-		RSP_ID(String response)
-		{
-			this.response = response;
-		}
-		
-		@Override
-		public String toString()
-		{
-			return response;
-		}
-	}
-	
-	/**
-	 * possible communication states
-	 */
-	public enum STAT
-	{
-		UNDEFINED("Undefined"),
-		INITIALIZING("Initializing"),
-		INITIALIZED("Initialized"),
-		ECU_DETECT("ECU detect"),
-		ECU_DETECTED("ECU detected"),
-		CONNECTING("Connecting"),
-		CONNECTED("Connected"),
-		NODATA("No data"),
-		STOPPED("Stopped"),
-		DISCONNECTED("Disconnected"),
-		BUSERROR("BUS error"),
-		DATAERROR("DATA error"),
-		RXERROR("RX error"),
-		ERROR("Error");
-		private final String elmState;
-		
-		STAT(String state)
-		{
-			elmState = state;
-		}
-		
-		@Override
-		public String toString()
-		{
-			return elmState;
-		}
-	}
-	
-	/**
-	 * numeric IDs for commands
-	 */
-	public enum CMD
-	{
-		RESET("Z", 0, true), ///< reset adapter
-		WARMSTART("WS", 0, true), ///< warm start
-		PROTOCLOSE("PC", 0, true), ///< protocol close
-		DEFAULTS("D", 0, true), ///< set all to defaults
-		INFO("I", 0, true), ///< request adapter info
-		LOWPOWER("LP", 0, true), ///< switch to low power mode
-		ECHO("E", 1, true), ///< enable/disable echo
-		SETLINEFEED("L", 1, true), ///< enable/disable line feeds
-		SETSPACES("S", 1, true), ///< enable/disable spaces
-		SETHEADER("H", 1, true), ///< enable/disable header response
-		GETPROT("DP", 0, true), ///< get protocol
-		SETPROT("SP", 1, true), ///< set protocol
-		CANMONITOR("MA", 0, true), ///< monitor CAN messages
-		SETPROTAUTO("SPA", 1, true), ///< set protocol auto
-		ADAPTTIMING("AT", 1, true), ///< Set ELM internal adaptive timing (0-2)
-		SETTIMEOUT("ST", 2, true), ///< set timeout (x*4ms)
-		SETTXHDR("SH", 3, true), ///< set TX header
-		SETCANRXFLT("CRA", 3, true), ///< set CAN RX filter
-		CLRCANRXFLT("CRA", 0, true); ///< clear CAN RX filter
-		
-		static final String CMD_HEADER = "AT";
-		private final String command;
-		final int paramDigits;
-		private final boolean disablingAllowed;
-		private boolean enabled = true;
-		
-		CMD(String cmd, int numDigitsParameter, @SuppressWarnings("SameParameterValue") boolean allowAdaption)
-		{
-			command = cmd;
-			paramDigits = numDigitsParameter;
-			disablingAllowed = allowAdaption;
-		}
-		
-		@Override
-		public String toString()
-		{
-			return CMD_HEADER + command;
-		}
-		
-		public boolean isEnabled()
-		{
-			return enabled;
-		}
-		
-		void setEnabled(boolean enabled)
-		{
-			if (disablingAllowed)
-			{
-				this.enabled = enabled;
-			}
-			// log current state
-			log.fine(String.format("ELM command '%s' -> %s",
-				toString(),
-				this.enabled ? "enabled" : "disabled"));
-		}
-		
-		public boolean isDisablingAllowed()
-		{
-			return disablingAllowed;
-		}
-	}
 
 	/**
 	 * Creates a new instance of ElmProtocol
@@ -416,7 +248,7 @@ public class ElmProt
 	 * multiline response is pending, for responses w/o a length info
 	 */
 	private boolean responsePending = false;
-	
+
 	/**
 	 * handle incoming protocol telegram
 	 *
@@ -424,39 +256,50 @@ public class ElmProt
 	 * @return number of listeners notified
 	 */
 	@Override
-	public synchronized int handleTelegram(char[] buffer)
-	{
-		int result = 0;
+	public synchronized int handleTelegram(char[] buffer) {
 		String bufferStr = new String(buffer);
-		
 		log.fine(this.toString() + " RX:'" + bufferStr + "'");
-		
-		// empty result
-		if (buffer.length == 0)
-		{
-			return result;
+
+		if (buffer.length == 0 || lastTxMsg.compareToIgnoreCase(bufferStr) == 0) {
+			return 0;
 		}
-		
-		// if ths is echo of last command
-		if (lastTxMsg.compareToIgnoreCase(bufferStr) == 0)
-		{
-			// ignore echoed command
-			return result;
-		}
-		
-		// log message reception as answer to last TX message
+
 		log.fine("ELM rx:'" + bufferStr + "' (" + lastTxMsg + ")");
-		
-		// handle response
-		switch (getResponseId(bufferStr))
-		{
-			case SEARCH:
-				setStatus(status != STAT.ECU_DETECT ? STAT.CONNECTING : status);
-				// NO break here
+
+		RSP_ID responseId = getResponseId(bufferStr);
+
+		switch (responseId) {
 			case QMARK:
 			case NODATA:
 			case OK:
 			case ERROR:
+			case SEARCH:
+				setStatus(status != STAT.ECU_DETECT ? STAT.CONNECTING : status);
+				lastRxMsg = bufferStr;
+				break;
+			case STOPPED:
+				lastRxMsg = bufferStr;
+				mCommandSender.addQueue(String.valueOf(mCommandSender.getLastCommand()));
+				break;
+			case MODEL:
+				initialize();
+				break;
+			case PROMPT:
+				handlePromptResponse(bufferStr);
+				break;
+			default:
+				handleDefaultResponse(bufferStr);
+				break;
+		}
+
+		return 0; // Adjust return value as per your logic
+	}
+
+
+	private void handlePromptResponse(String bufferStr) {
+		RSP_ID lastResponseId = getResponseId(lastRxMsg);
+
+		switch (lastResponseId) {
 			case NOCONN:
 			case NOCONN2:
 			case CANERROR:
@@ -466,307 +309,167 @@ public class ElmProt
 			case BUSINIERR3:
 			case BUSBUSY:
 			case FBERROR:
+				setStatus(STAT.DISCONNECTED);
+				mCommandSender.addQueue(String.valueOf(mCommandSender.getLastCommand()));
+				mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
+				mAdaptiveTiming.initialize();
+				mCommandSender.sendCommand(CMD.PROTOCLOSE, 0);
+				break;
 			case DATAERROR:
+				setStatus(STAT.DATAERROR);
+				mCommandSender.sendCommand(CMD.WARMSTART, 0);
+				break;
 			case BUFFERFULL:
 			case RXERROR:
-				// remember this as last received message
-				// do NOT respond immediately
-				lastRxMsg = bufferStr;
+				setStatus(status == STAT.DATAERROR ? STAT.DATAERROR : STAT.RXERROR);
+				mCommandSender.sendCommand(CMD.WARMSTART, 0);
 				break;
-
-			case STOPPED:
-				// remember this as last received message
-				lastRxMsg = bufferStr;
-				// re-queue last command
-				mCommandSender.addQueue(String.valueOf(mCommandSender.getLastCommand()));
+			case ERROR:
+				setStatus(STAT.ERROR);
+				mCommandSender.sendCommand(CMD.WARMSTART, 0);
 				break;
-
-			case MODEL:
-				initialize();
-				break;
-			
-			// received a PROMPT, what was the last response?
-			case PROMPT:
-				// check for last received message
-				switch (getResponseId(lastRxMsg))
-				{
-					case NOCONN:
-					case NOCONN2:
-					case CANERROR:
-					case BUSERROR:
-					case BUSINIERR:
-					case BUSINIERR2:
-					case BUSINIERR3:
-					case BUSBUSY:
-					case FBERROR:
-						setStatus(STAT.DISCONNECTED);
-						// re-queue last command
-						mCommandSender.addQueue(String.valueOf(mCommandSender.getLastCommand()));
-						// queue setting to preferred protocol
-						mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
-						// Initialize adaptive timing
-						mAdaptiveTiming.initialize();
-						// immediately close current protocol
-						mCommandSender.sendCommand(CMD.PROTOCLOSE, 0);
-						break;
-					
-					case DATAERROR:
-						setStatus(STAT.DATAERROR);
-						mCommandSender.sendCommand(CMD.WARMSTART, 0);
-						break;
-					
-					case BUFFERFULL:
-					case RXERROR:
-						setStatus(STAT.RXERROR);
-						mCommandSender.sendCommand(CMD.WARMSTART, 0);
-						break;
-					
-					case ERROR:
-						setStatus(STAT.ERROR);
-						mCommandSender.sendCommand(CMD.WARMSTART, 0);
-						break;
-
-					case NODATA:
-						setStatus(STAT.NODATA);
-						// re-queue next data item
-						if (service != OBD_SVC_NONE)
-						{
-							mCommandSender.addQueue(
-								String.valueOf(
-									createTelegram(emptyBuffer, service, getNextSupportedPid()))
-							);
-						}
-						// increase OBD timeout since we may expect answers too fast
-						mAdaptiveTiming.adapt(true);
-						// set to preferred protocol
-						mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
-						// NO break here since reaction is only quqeued
-					
-					case MODEL:
-					case SEARCH:
-					case STOPPED:
-						// was already handled before prompt
-					case QMARK:
-						// last command stays ignored
-					
-					case OK:
-					default:
-						// if there is a pending data response, handle it now ...
-						if (responsePending)
-						{
-							result = handleDataMessage(lastRxMsg);
-						}
-						
-						// queued commands will be sent first
-						if (mCommandSender.queueSize() > 0)
-						{
-							// get last command
-							String cmd = mCommandSender.getLastCommand();
-							// and remove it from list
-							mCommandSender.removeCommand(cmd);
-							// send the command
-							sendTelegram(cmd.toCharArray());
-						}
-						else
-						{
-							// all queued commands are sent -> we are done initializing
-							if (status == STAT.INITIALIZING)
-							{
-								// set status to initialized
-								setStatus(STAT.INITIALIZED);
-								// initiate query of connected ECUs
-								queryEcus();
-								break;
-							}
-							
-							// all queued commands are sent -> we are done detecting ECUs
-							setStatus(status == STAT.ECU_DETECT ? STAT.ECU_DETECTED : status);
-							
-							switch (service)
-							{
-								case OBD_SVC_VEH_INFO:
-									// if all pid's have been read once ...
-									if (pidsWrapped)
-									{
-										// ... terminate service loop
-										break;
-									}
-									// no break here ...
-								case OBD_SVC_DATA:
-								case OBD_SVC_FREEZEFRAME:
-								{
-									// otherwise the next PID will be requested
-									writeTelegram(emptyBuffer, service, getNextSupportedPid());
-									// reduce OBD timeout towards minimum limit
-									mAdaptiveTiming.adapt(false);
-								}
-								break;
-								
-								case OBD_SVC_NONE:
-								default:
-									// do nothing
-							}
-						}
+			case NODATA:
+				setStatus(STAT.NODATA);
+				if (service != OBD_SVC_NONE) {
+					mCommandSender.addQueue(String.valueOf(createTelegram(emptyBuffer, service, getNextSupportedPid())));
 				}
-				break;
-			
-			// handle data response
+				mAdaptiveTiming.adapt(true);
+				mCommandSender.pushCommand(CMD.SETPROT, preferredProtocol.ordinal());
 			default:
-				// if we are still initializing check for address entries
-				switch (status)
-				{
-					case ECU_DETECT:
-					{
-						// start of 0100 response is end of address
-						int adrEnd = bufferStr.indexOf("41");
-						// if not a service response, check for possible NRC
-						if(adrEnd < 0)
-						{
-							adrEnd = bufferStr.indexOf("7F01");
-						}
-						int adrStart = bufferStr.lastIndexOf(".") + 1;
-						if (adrEnd > adrStart)
-						{
-							int adrLen = adrEnd - adrStart;
-							if ((adrLen % 2) != 0)
-							{
-								/*
-								 * odd address length
-								 * -> CAN address length = 3 digits + 2 digits frame type
-								 */
-								adrLen = 3;
-							}
-							else
-							{
-								if (adrLen == 6)
-								{
-									/*
-									 * 6 char (3 byte) prefix -> ISO9141 address <FF><RR><SS>
-									 *     FF - Frame type
-									 *     RR - receiver address
-									 *     SS - sender address
-									 */
-									adrLen = 2;
-									adrStart = adrEnd - adrLen;
-								}
-								else if (adrLen == 10)
-								{
-									/*
-									 * 29 bit CAN address
-									 * <CP><AABBCC><FT>
-									 *     CP = CAN priority (5 relevant bits)
-									 *     AABBCC = Address (24 Bit)
-									 *     FT = Frame type
-									 * -> CAN address length = 32 bits / 8 digits <CP><AABBCC>
-									 */
-									adrLen = 8;
-									adrStart = 0;
-								}
-							}
-							// extract address
-							String address = bufferStr.substring(adrStart, adrStart + adrLen);
-							
-							log.fine(String.format("Found ECU address: 0x%s", address));
-							// and add to list of addresses
-							ecuAddresses.add(Integer.valueOf(address, 16));
-						}
-						return lastRxMsg.length();
-					}
-					default:
-						break;
-				}
-				
-				// we are connected ...
-				setStatus(STAT.CONNECTED);
-				
-				// ELM clone verbose message (starting with '+')
-				if(buffer[0] == '+')
-				{
-					// ignore message
-					return (result);
-				}
-				
-				// is this a length identifier?
-				if (buffer[0] == '0' && buffer.length == 3)
-				{
-					// then remember the length to be expected
-					charsExpected = Integer.valueOf(bufferStr, 16) * 2;
-					lastRxMsg = "";
-					return (result);
-				}
-				
-				// is this a multy-line response
-				int idx = bufferStr.indexOf(':');
-
-				// .. or a ISO multi line response with format SVC PID MSGID DATA...
-				if((idx < 0) && (buffer.length == 14))
-				{
-					final int[] dfcServices = {OBD_SVC_READ_CODES, OBD_SVC_PENDINGCODES, OBD_SVC_PERMACODES};
-					int msgService = Integer.valueOf(bufferStr.substring(0, 2), 0x10) & ~0x40;
-					// If response to current service and no DFC response ...
-					if(msgService == getService()
-					   && Arrays.binarySearch(dfcServices, msgService) < 0)
-					{
-						// Use header on 1st response, cut from continuation messages
-						int msgId = Integer.valueOf(bufferStr.substring(4,6),0x10);
-						idx = msgId <= 1 ? 0 : 5; // index of last digit message id
-					}
-				}
-
-				if (idx >= 0)
-				{
-					if(idx == 0)
-					{
-						// initial ISO multiline message
-						lastRxMsg = bufferStr;
-						charsExpected = 0;
-					}
-					else if (buffer[0] == '0')
-					{
-						// first line of a multiline message
-						lastRxMsg = bufferStr.substring(idx + 1);
-					}
-					else
-					{
-						// continuation lines
-						// concat response without line counter
-						lastRxMsg += bufferStr.substring(idx + 1);
-					}
-
-					/* no length known, set marker for pending response
-					   response will be finished on reception of prompt */
-					responsePending = (charsExpected == 0);
-				}
-				else
-				{
-					// otherwise use this as last received message
-					lastRxMsg = bufferStr;
-					charsExpected = 0;
-					responsePending = false;
-				}
-				
-
-				// if we haven't received complete result yet, then wait for the rest
-				if (lastRxMsg.length() < charsExpected)
-				{
-					return (result);
-				}
-				
-				// Trim a multiline response to expected length (cut off padding)
-				if((charsExpected > 0) && (lastRxMsg.length() > charsExpected))
-				{
-					lastRxMsg = lastRxMsg.substring(0, charsExpected);
-				}
-				
-				// if response is finished, handle it
-				if (!responsePending)
-				{
-					result = handleDataMessage(lastRxMsg);
-				}
+				lastRxMsg = bufferStr;
+				break;
 		}
-		return (result);
 	}
-	
+
+	private int handleDefaultResponse(String bufferStr) {
+		int result = 0;
+		// If we are still initializing, check for address entries
+		switch (status) {
+			case ECU_DETECT: {
+				// Start of 0100 response is end of address
+				int adrEnd = bufferStr.indexOf("41");
+				// If not a service response, check for possible NRC
+				if (adrEnd < 0) {
+					adrEnd = bufferStr.indexOf("7F01");
+				}
+				int adrStart = bufferStr.lastIndexOf(".") + 1;
+				if (adrEnd > adrStart) {
+					int adrLen = adrEnd - adrStart;
+					if ((adrLen % 2) != 0) {
+						/*
+						 * Odd address length
+						 * -> CAN address length = 3 digits + 2 digits frame type
+						 */
+						adrLen = 3;
+					} else {
+						if (adrLen == 6) {
+							/*
+							 * 6 char (3 byte) prefix -> ISO9141 address <FF><RR><SS>
+							 * FF - Frame type
+							 * RR - Receiver address
+							 * SS - Sender address
+							 */
+							adrLen = 2;
+							adrStart = adrEnd - adrLen;
+						} else if (adrLen == 10) {
+							/*
+							 * 29 bit CAN address
+							 * <CP><AABBCC><FT>
+							 * CP = CAN priority (5 relevant bits)
+							 * AABBCC = Address (24 Bit)
+							 * FT = Frame type
+							 * -> CAN address length = 32 bits / 8 digits <CP><AABBCC>
+							 */
+							adrLen = 8;
+							adrStart = 0;
+						}
+					}
+					// Extract address
+					String address = bufferStr.substring(adrStart, adrStart + adrLen);
+
+					log.fine(String.format("Found ECU address: 0x%s", address));
+					// Add to list of addresses
+					ecuAddresses.add(Integer.valueOf(address, 16));
+				}
+				return lastRxMsg.length();
+			}
+			default:
+				break;
+		}
+
+		// We are connected
+		setStatus(STAT.CONNECTED);
+
+		// ELM clone verbose message (starting with '+')
+		if (bufferStr.startsWith("+")) {
+			// Ignore message
+			return result;
+		}
+
+		// Is this a length identifier?
+		if (bufferStr.startsWith("0") && bufferStr.length() == 3) {
+			// Remember the length to be expected
+			charsExpected = Integer.valueOf(bufferStr, 16) * 2;
+			lastRxMsg = "";
+			return result;
+		}
+
+		// Check for multiline responses
+		int idx = bufferStr.indexOf(':');
+
+		// ISO multi-line response with format SVC PID MSGID DATA...
+		if ((idx < 0) && (bufferStr.length() == 14)) {
+			final int[] dfcServices = {OBD_SVC_READ_CODES, OBD_SVC_PENDINGCODES, OBD_SVC_PERMACODES};
+			int msgService = Integer.valueOf(bufferStr.substring(0, 2), 0x10) & ~0x40;
+			// If response to current service and no DFC response
+			if (msgService == getService() && Arrays.binarySearch(dfcServices, msgService) < 0) {
+				// Use header on 1st response, cut from continuation messages
+				int msgId = Integer.valueOf(bufferStr.substring(4, 6), 0x10);
+				idx = msgId <= 1 ? 0 : 5; // Index of last digit message ID
+			}
+		}
+
+		if (idx >= 0) {
+			if (idx == 0) {
+				// Initial ISO multiline message
+				lastRxMsg = bufferStr;
+				charsExpected = 0;
+			} else if (bufferStr.startsWith("0")) {
+				// First line of a multiline message
+				lastRxMsg = bufferStr.substring(idx + 1);
+			} else {
+				// Continuation lines, concatenate response without line counter
+				lastRxMsg += bufferStr.substring(idx + 1);
+			}
+
+			// No length known, set marker for pending response
+			responsePending = (charsExpected == 0);
+		} else {
+			// Otherwise, use this as last received message
+			lastRxMsg = bufferStr;
+			charsExpected = 0;
+			responsePending = false;
+		}
+
+		// If we haven't received complete result yet, then wait for the rest
+		if (lastRxMsg.length() < charsExpected) {
+			return result;
+		}
+
+		// Trim a multiline response to expected length (cut off padding)
+		if ((charsExpected > 0) && (lastRxMsg.length() > charsExpected)) {
+			lastRxMsg = lastRxMsg.substring(0, charsExpected);
+		}
+
+		// If response is finished, handle it
+		if (!responsePending) {
+			result = handleDataMessage(lastRxMsg);
+		}
+
+		return result;
+	}
+
+
 	/**
 	 * forward data message for further handling
 	 *

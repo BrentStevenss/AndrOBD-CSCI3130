@@ -20,8 +20,11 @@ package com.fr3ts0n.ecu.gui.application;
 
 import com.fr3ts0n.common.UTF8Bundle;
 import com.fr3ts0n.common.UTF8Control;
+import com.fr3ts0n.ecu.CMD;
 import com.fr3ts0n.ecu.EcuDataItem;
 import com.fr3ts0n.ecu.EcuDataPv;
+import com.fr3ts0n.ecu.PROT;
+import com.fr3ts0n.ecu.prot.obd.CommandSender;
 import com.fr3ts0n.ecu.prot.obd.ElmProt;
 import com.fr3ts0n.ecu.prot.obd.ObdProt;
 import com.fr3ts0n.prot.gui.SerialHandler;
@@ -72,6 +75,8 @@ public class ObdTestFrame extends javax.swing.JFrame
 	private static final ElmProt prt = new ElmProt();
 	/** Serial communication handler */
 	private static final SerialHandler ser = new SerialHandler();
+
+	private static final CommandSender mCommandSender = new CommandSender();
 
 	/** is this a simulation, or the real world? */
 	static boolean isSimulation = false;
@@ -233,7 +238,7 @@ public class ObdTestFrame extends javax.swing.JFrame
 		panFooter.add(cbCnvSystem, gridBagConstraints);
 
 		cbProtocol.setFont(new java.awt.Font("Dialog", 0, 10));
-		cbProtocol.setModel(new javax.swing.DefaultComboBoxModel(ElmProt.PROT.values()));
+		cbProtocol.setModel(new javax.swing.DefaultComboBoxModel(PROT.values()));
 		cbProtocol.setToolTipText("Select communication protocol");
 		cbProtocol.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
 		cbProtocol.addActionListener(formListener);
@@ -377,7 +382,7 @@ public class ObdTestFrame extends javax.swing.JFrame
 
 	private void miCommInitActionPerformed()//GEN-FIRST:event_miCommInitActionPerformed
 	{//GEN-HEADEREND:event_miCommInitActionPerformed
-		prt.sendCommand(ElmProt.CMD.RESET, 0);
+		mCommandSender.sendCommand(CMD.RESET, 0);
 	}//GEN-LAST:event_miCommInitActionPerformed
 
 	private void miSaveActionPerformed()//GEN-FIRST:event_miSaveActionPerformed
@@ -453,7 +458,7 @@ public class ObdTestFrame extends javax.swing.JFrame
 
 	private void cbProtocolActionPerformed()//GEN-FIRST:event_cbProtocolActionPerformed
 	{//GEN-HEADEREND:event_cbProtocolActionPerformed
-		prt.sendCommand(ElmProt.CMD.SETPROTAUTO, cbProtocol.getSelectedIndex());
+		mCommandSender.sendCommand(CMD.SETPROTAUTO, cbProtocol.getSelectedIndex());
 	}//GEN-LAST:event_cbProtocolActionPerformed
 
 	/**

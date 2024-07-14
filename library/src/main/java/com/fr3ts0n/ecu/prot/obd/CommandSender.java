@@ -1,5 +1,6 @@
 package com.fr3ts0n.ecu.prot.obd;
 
+import com.fr3ts0n.ecu.CMD;
 import com.fr3ts0n.prot.TelegramSender;
 
 import java.util.Vector;
@@ -15,6 +16,10 @@ public class CommandSender extends TelegramSender {
     /** Logging object */
     protected static Logger log = Logger.getLogger("com.fr3ts0n.prot");
 
+    public CommandSender(){
+
+    }
+
     @Override
     public void sendTelegram(char[] buffer)
     {
@@ -29,7 +34,7 @@ public class CommandSender extends TelegramSender {
      * @param param parameter for ELM command (0 if not required)
      * @return command char sequence or NULL if command disabled/invalid
      */
-    private String createCommand(ElmProt.CMD cmdID, int param)
+    private String createCommand(CMD cmdID, int param)
     {
         String cmd = null;
         if (cmdID.isEnabled())
@@ -51,7 +56,7 @@ public class CommandSender extends TelegramSender {
      * @param cmdID ID of ELM command
      * @param param parameter for ELM command (0 if not required)
      */
-    public void pushCommand(ElmProt.CMD cmdID, int param)
+    public void pushCommand(CMD cmdID, int param)
     {
         String cmd = createCommand(cmdID, param);
         if (cmd != null) { cmdQueue.add(cmd); }
@@ -77,7 +82,7 @@ public class CommandSender extends TelegramSender {
      * @param cmdID ID of ELM command
      * @param param parameter for ELM command (0 if not required)
      */
-    public void sendCommand(ElmProt.CMD cmdID, int param)
+    public void sendCommand(CMD cmdID, int param)
     {
         // now send command
         String cmd = createCommand(cmdID, param);
